@@ -1,0 +1,179 @@
+"use client";
+
+import { ResizableBox } from "react-resizable";
+import "react-resizable/css/styles.css";
+import { useState, useEffect, useRef } from "react";
+import ConfirmDeleteDialog from "../dialog/confirm";
+
+interface DraggableResizableBoxProps {
+  id: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  text: string;
+  rotation: number;
+  isSelected: boolean;
+  className?: string;
+  selectedElements: string[]; // Danh sách ID của các phần tử đã chọn
+  onStartDrag: (e: React.MouseEvent) => void;
+  onResize: (width: number, height: number) => void;
+  onRotate: (degree: number) => void;
+  onTextChange: (text: string) => void;
+  onDelete: () => void;
+}
+
+const ItemBox: React.FC<DraggableResizableBoxProps> = ({
+  id,
+  position,
+  size,
+  text,
+  rotation,
+  isSelected,
+  className = "",
+  selectedElements,
+  onStartDrag,
+  onResize,
+  onRotate,
+  onTextChange,
+  onDelete,
+}) => {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [rotating, setRotating] = useState(false);
+  const [center, setCenter] = useState({ x: 0, y: 0 });
+  const [click, setClick] = useState(false);
+  const [hover, setHover] = useState(false);
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setHover(true);
+  };
+  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setHover(false);
+  };
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setClick((prev) => !prev);
+  };
+
+  const handleMouseDownRotate = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+    if (rect) {
+      setCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    }
+    setRotating(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    if (rotating) {
+      const handleMouseMove = (e: MouseEvent) => {
+        const angle = Math.atan2(e.clientY - center.y, e.clientX - center.x);
+        const degree = (angle * 180) / Math.PI;
+        onRotate(degree);
+      };
+
+      const handleMouseUp = () => {
+        setRotating(false);
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [rotating, center, onRotate]);
+
+  const handleResizeStop = (
+    e: React.SyntheticEvent,
+    data: { size: { width: number; height: number } }
+  ) => {
+    onResize(data.size.width, data.size.height);
+  };
+
+  const handleTextClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleInputBlur = () => {
+    setEditing(false);
+    onTextChange(text);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onTextChange(e.target.value);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      setEditing(false);
+      onTextChange(text);
+    }
+  };
+
+  return (
+    <div
+      className={`absolute item-box border ${
+        isSelected ? "border-red-500 bg-blue-600" : "border-blue-500 bg-blue-100"
+      } ${className}`}
+      data-id={id}
+      style={{
+        left: position.x,
+        top: position.y,
+        transform: `rotate(${rotation}deg)`,
+      }}
+      onMouseDown={onStartDrag}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <ResizableBox
+        width={size.width}
+        height={size.height}
+        axis="both"
+        minConstraints={[50, 50]}
+        className="border border-blue-500 bg-transparent"
+        onResizeStop={handleResizeStop}
+      >
+        <div className="w-full h-full flex items-center justify-center relative">
+          {editing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={text}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              className="border p-1 w-full text-center"
+            />
+          ) : (
+            <span onClick={handleTextClick} className="cursor-pointer">
+              {text}
+            </span>
+          )}
+        </div>
+      </ResizableBox>
+      {click && (
+        <div
+          className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 cursor-pointer bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+          onMouseDown={handleMouseDownRotate}
+        >
+          ⭮
+        </div>
+      )}
+      {hover && (
+        <div className="absolute -top-2 -right-1">
+          <ConfirmDeleteDialog onDelete={onDelete} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ItemBox;

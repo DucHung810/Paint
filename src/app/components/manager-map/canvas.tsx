@@ -1,0 +1,135 @@
+// Canvas.tsx
+import { useRef, useEffect, useCallback } from "react";
+import Selecto from "react-selecto";
+import Moveable from "react-moveable";
+import { OnSelectEnd } from "react-selecto";
+import { ShapeComponent } from "./comp-shape";
+import { Shape } from "./shapes";
+
+
+interface CanvasProps {
+  shapes: Shape[];
+  selectedIds: string[];
+  isDraggingGroup: boolean;
+  updateShapes: (newShapes: Shape[], skipHistory?: boolean) => void;
+  onSelect: (e: OnSelectEnd) => void;
+  onDrop: (e: React.DragEvent<HTMLDivElement>, type: "square" | "circle" | "arrow"| "car" | "motor" | "bicycle") => void;
+  onDragGroupStart: () => void; // Thêm prop
+  onDragGroupEnd: () => void;   // Thêm prop
+}
+
+export const Canvas = ({
+  shapes,
+  selectedIds,
+  isDraggingGroup,
+  updateShapes,
+  onSelect,
+  onDrop,
+  onDragGroupStart,
+  onDragGroupEnd,
+}: CanvasProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const moveableRef = useRef<Moveable>(null);
+
+  const getMoveableTargets = useCallback(() => {
+    return selectedIds
+      .map((id) => document.querySelector(`[data-id="${id}"]`))
+      .filter((el): el is HTMLElement => el instanceof HTMLElement);
+  }, [selectedIds]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" && selectedIds.length > 0) {
+        const newShapes = shapes.filter((shape) => !selectedIds.includes(shape.id));
+        updateShapes(newShapes);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIds, shapes, updateShapes]);
+
+  return (
+    <div
+      className="relative w-full h-[calc(100%-120px)] border border-gray-400 rounded-lg overflow-auto p-2"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => onDrop(e, e.dataTransfer.getData("type") as "square" | "circle" | "arrow" | "car" | "motor" | "bicycle")}
+    >
+      <div className="absolute" ref={containerRef}>
+        {shapes.map((shape) => (
+          <ShapeComponent key={shape.id} shape={shape} />
+        ))}
+      </div>
+      <Selecto
+        container={containerRef.current}
+        selectableTargets={[".shape"]}
+        hitRate={100}
+        selectByClick={true}
+        selectFromInside={false}
+        dragCondition={() => !isDraggingGroup}
+        onSelectEnd={onSelect}
+      />
+      <Moveable
+        ref={moveableRef}
+        target={getMoveableTargets()}
+        draggable={true}
+        resizable={true}
+        rotatable={true}
+        keepRatio={false}
+        throttleDrag={1}
+        onDragGroupStart={onDragGroupStart} 
+        onDragGroupEnd={onDragGroupEnd}    
+        onDragGroup={({ events }) => {
+          const newShapes = shapes.map((shape) => {
+            const event = events.find((e) => e.target.dataset.id === shape.id);
+            return event
+              ? { ...shape, x: shape.x + event.delta[0], y: shape.y + event.delta[1] }
+              : shape;
+          });
+          updateShapes(newShapes, true);
+        }}
+        onResizeGroup={({ events }) => {
+          const newShapes = shapes.map((shape) => {
+            const event = events.find((e) => e.target.dataset.id === shape.id);
+            if (event) {
+              event.delta[0] && (event.target.style.width = `${event.width}px`);
+              event.delta[1] && (event.target.style.height = `${event.height}px`);
+              return { ...shape, width: event.width, height: event.height };
+            }
+            return shape;
+          });
+          updateShapes(newShapes, true);
+        }}
+        onRotateGroup={({ events }) => {
+          const newShapes = shapes.map((shape) => {
+            const event = events.find((e) => e.target.dataset.id === shape.id);
+            return event ? { ...shape, rotation: event.rotation } : shape;
+          });
+          updateShapes(newShapes, true);
+        }}
+        onDrag={({ target, delta }) => {
+          const newShapes = shapes.map((s) =>
+            s.id === target.dataset.id ? { ...s, x: s.x + delta[0], y: s.y + delta[1] } : s
+          );
+          updateShapes(newShapes, true);
+        }}
+        onResize={({ target, width, height, delta }) => {
+          delta[0] && (target.style.width = `${width}px`);
+          delta[1] && (target.style.height = `${height}px`);
+          const newShapes = shapes.map((s) =>
+            s.id === target.dataset.id ? { ...s, width, height } : s
+          );
+          updateShapes(newShapes, true);
+        }}
+        onRotate={({ target, rotation }) => {
+          const newShapes = shapes.map((s) =>
+            s.id === target.dataset.id ? { ...s, rotation } : s
+          );
+          updateShapes(newShapes, true);
+        }}
+        onDragEnd={() => updateShapes(shapes)}
+        onResizeEnd={() => updateShapes(shapes)}
+        onRotateEnd={() => updateShapes(shapes)}
+      />
+    </div>
+  );
+};
