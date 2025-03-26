@@ -1,5 +1,7 @@
-// Toolbox.tsx
 import { useCallback } from "react";
+import DraggableItem from "./com-tool/draggable-item";
+import { IMAGE_ITEMS, TOOL_ITEMS } from "./com-tool/list-item-tool";
+// Import danh sách items
 
 interface ToolboxProps {
   onUpdateColor: (color: string) => void;
@@ -28,55 +30,26 @@ export const Toolbox = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row gap-4">
-        <div
-          draggable
-          onDragStart={(e) => e.dataTransfer.setData("type", "square")}
-          className="w-10 h-10 bg-gray-500 cursor-move"
-        />
-
-        <div
-          draggable
-          onDragStart={(e) => e.dataTransfer.setData("type", "circle")}
-          className="w-10 h-10 bg-gray-500 rounded-full cursor-move"
-        />
-        <div
-          draggable
-          onDragStart={(e) => e.dataTransfer.setData("type", "arrow")}
-          className="w-10 h-10 flex items-center justify-center cursor-move bg-gray-500"
-        >
-          <svg width={24} height={24} fill="none">
-            <path
-              d="M0 12 H18 L12 6 M18 12 L12 18"
-              stroke="white"
-              strokeWidth="2"
-            />
-          </svg>
-        </div>
+      {/* Render các shape cơ bản */}
+      <div className="grid grid-cols-3 grid-rows-1 max-w-[150px] gap-2">
+        {TOOL_ITEMS.map(({ type, className, icon }) => (
+          <DraggableItem key={type} type={type} className={className}>
+            {icon}
+          </DraggableItem>
+        ))}
       </div>
 
-      <div  className="flex flex-row gap-4">
-      <div className=" w-10 h-10 cursor-move"
-         draggable
-            onDragStart={(e) => e.dataTransfer.setData("type", "car")}
-         >
-        <img src="./icon/car.svg" alt="car" />
+      {/* Render các hình ảnh */}
+      <div className="grid grid-cols-3 grid-rows-1 max-w-[150px] gap-2">
+        {IMAGE_ITEMS.map(({ type, src, alt }) => (
+          <DraggableItem key={type} type={type} className="w-10 h-10">
+            <img src={src} alt={alt} />
+          </DraggableItem>
+        ))}
       </div>
-      <div className="w-10 h-10 cursor-move"
-         draggable
-            onDragStart={(e) => e.dataTransfer.setData("type", "motor")}
-         >
-        <img src="./icon/motor.svg" alt="car" />
-      </div>
-      <div className=" w-10 h-10 cursor-move"
-         draggable
-            onDragStart={(e) => e.dataTransfer.setData("type", "bicycle")}
-         >
-        <img src="./icon/bicycle.svg" alt="car" />
-      </div>
-      </div>
-      
-      <div className="flex flex-row gap-4 items-center">
+
+      {/* Chọn màu */}
+      <div className="flex flex-row gap-2 items-center">
         <label className="text-gray-700 font-bold">Choose Color:</label>
         <input
           type="color"
@@ -84,12 +57,14 @@ export const Toolbox = ({
           className="w-6 h-6 cursor-pointer"
         />
       </div>
+
+      {/* Nhập text */}
       <input
         type="text"
         value={textInput}
         onChange={handleTextChange}
         placeholder="Enter text"
-        className="border p-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[150px]"
+        className=" border text-black p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500 max-w-[150px]"
       />
     </div>
   );

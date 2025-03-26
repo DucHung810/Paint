@@ -1,32 +1,37 @@
-// Canvas.tsx
 import { useRef, useEffect, useCallback } from "react";
 import Selecto from "react-selecto";
 import Moveable from "react-moveable";
 import { OnSelectEnd } from "react-selecto";
 import { ShapeComponent } from "./comp-shape";
 import { Shape } from "./shapes";
-
+import { ShapeType } from "./enum";
 
 interface CanvasProps {
   shapes: Shape[];
   selectedIds: string[];
   isDraggingGroup: boolean;
+  isRotatingGroup: boolean;
   updateShapes: (newShapes: Shape[], skipHistory?: boolean) => void;
   onSelect: (e: OnSelectEnd) => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>, type: "square" | "circle" | "arrow"| "car" | "motor" | "bicycle") => void;
-  onDragGroupStart: () => void; // Thêm prop
-  onDragGroupEnd: () => void;   // Thêm prop
+  onDrop: (e: React.DragEvent<HTMLDivElement>, type: ShapeType) => void;
+  onDragGroupStart: () => void;
+  onDragGroupEnd: () => void;
+  onRotateGroupStart: () => void;
+  onRotateGroupEnd: () => void;
 }
 
 export const Canvas = ({
   shapes,
   selectedIds,
   isDraggingGroup,
+  isRotatingGroup,
   updateShapes,
   onSelect,
   onDrop,
   onDragGroupStart,
   onDragGroupEnd,
+  onRotateGroupStart,
+  onRotateGroupEnd,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const moveableRef = useRef<Moveable>(null);
@@ -40,7 +45,9 @@ export const Canvas = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Delete" && selectedIds.length > 0) {
-        const newShapes = shapes.filter((shape) => !selectedIds.includes(shape.id));
+        const newShapes = shapes.filter(
+          (shape) => !selectedIds.includes(shape.id)
+        );
         updateShapes(newShapes);
       }
     };
@@ -52,7 +59,9 @@ export const Canvas = ({
     <div
       className="relative w-full h-[calc(100%-120px)] border border-gray-400 rounded-lg overflow-auto p-2"
       onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => onDrop(e, e.dataTransfer.getData("type") as "square" | "circle" | "arrow" | "car" | "motor" | "bicycle")}
+      onDrop={(e) => {
+        onDrop(e, e.dataTransfer.getData("type") as ShapeType);
+      }}
     >
       <div className="absolute" ref={containerRef}>
         {shapes.map((shape) => (
@@ -62,11 +71,18 @@ export const Canvas = ({
       <Selecto
         container={containerRef.current}
         selectableTargets={[".shape"]}
-        hitRate={100}
+        hitRate={90}
         selectByClick={true}
         selectFromInside={false}
-        dragCondition={() => !isDraggingGroup}
-        onSelectEnd={onSelect}
+        dragCondition={() => !isDraggingGroup && !isRotatingGroup} // Cập nhật điều kiện: chặn kéo chuột nếu đang kéo hoặc xoay nhóm
+        onSelectEnd={(e) => {
+          if (isDraggingGroup || isRotatingGroup) return; // Bỏ qua nếu đang kéo hoặc xoay nhóm
+          console.log(
+            "Selected shapes:",
+            e.selected.map((el) => el.dataset.id)
+          );
+          onSelect(e);
+        }}
       />
       <Moveable
         ref={moveableRef}
@@ -76,13 +92,22 @@ export const Canvas = ({
         rotatable={true}
         keepRatio={false}
         throttleDrag={1}
-        onDragGroupStart={onDragGroupStart} 
-        onDragGroupEnd={onDragGroupEnd}    
+        onDragGroupStart={() => {
+          onDragGroupStart();
+        }}
+        onDragGroupEnd={() => {
+          onDragGroupEnd();
+        }}
         onDragGroup={({ events }) => {
           const newShapes = shapes.map((shape) => {
+            if (!selectedIds.includes(shape.id)) return shape;
             const event = events.find((e) => e.target.dataset.id === shape.id);
             return event
-              ? { ...shape, x: shape.x + event.delta[0], y: shape.y + event.delta[1] }
+              ? {
+                  ...shape,
+                  x: shape.x + event.delta[0],
+                  y: shape.y + event.delta[1],
+                }
               : shape;
           });
           updateShapes(newShapes, true);
@@ -92,12 +117,19 @@ export const Canvas = ({
             const event = events.find((e) => e.target.dataset.id === shape.id);
             if (event) {
               event.delta[0] && (event.target.style.width = `${event.width}px`);
-              event.delta[1] && (event.target.style.height = `${event.height}px`);
+              event.delta[1] &&
+                (event.target.style.height = `${event.height}px`);
               return { ...shape, width: event.width, height: event.height };
             }
             return shape;
           });
           updateShapes(newShapes, true);
+        }}
+        onRotateGroupStart={() => {
+          onRotateGroupStart();
+        }}
+        onRotateGroupEnd={() => {
+          onRotateGroupEnd();
         }}
         onRotateGroup={({ events }) => {
           const newShapes = shapes.map((shape) => {
@@ -108,7 +140,9 @@ export const Canvas = ({
         }}
         onDrag={({ target, delta }) => {
           const newShapes = shapes.map((s) =>
-            s.id === target.dataset.id ? { ...s, x: s.x + delta[0], y: s.y + delta[1] } : s
+            s.id === target.dataset.id
+              ? { ...s, x: s.x + delta[0], y: s.y + delta[1] }
+              : s
           );
           updateShapes(newShapes, true);
         }}
@@ -126,9 +160,15 @@ export const Canvas = ({
           );
           updateShapes(newShapes, true);
         }}
-        onDragEnd={() => updateShapes(shapes)}
-        onResizeEnd={() => updateShapes(shapes)}
-        onRotateEnd={() => updateShapes(shapes)}
+        onDragEnd={() => {
+          updateShapes(shapes);
+        }}
+        onResizeEnd={() => {
+          updateShapes(shapes);
+        }}
+        onRotateEnd={() => {
+          updateShapes(shapes);
+        }}
       />
     </div>
   );

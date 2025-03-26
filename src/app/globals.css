@@ -16,11 +16,12 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --backgroundwhite: #fff;
   }
 }
 
 body {
-  background: var(--background);
+  background: var(--backgroundwhite);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

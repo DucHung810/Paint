@@ -1,5 +1,6 @@
 // useShapes.ts
 import { useState, useEffect } from "react";
+import { ShapeType } from "./enum";
 
 const SHAPES_STORAGE_KEY = "draw-tool-shapes";
 
@@ -10,7 +11,7 @@ export interface Shape {
   width: number;
   height: number;
   color: string;
-  type: "square" | "circle" | "arrow"| "car" | "motor" | "bicycle";
+  type: ShapeType;
   rotation: number;
   text: string;
 }
