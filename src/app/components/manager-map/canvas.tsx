@@ -55,15 +55,54 @@ export const Canvas = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedIds, shapes, updateShapes]);
 
+  const canvasBounds = { width: 1500, height: 790 }; // Giới hạn khu vực canvas
+
+  const handleDrag = ({ target, delta }: any) => {
+    const shapeId = target.dataset.id;
+    const shape = shapes.find((s) => s.id === shapeId);
+    if (!shape) return;
+
+    let newX = shape.x + delta[0];
+    let newY = shape.y + delta[1];
+
+    // Giới hạn vật thể không vượt quá canvas
+    newX = Math.max(0, Math.min(canvasBounds.width - shape.width, newX));
+    newY = Math.max(0, Math.min(canvasBounds.height - shape.height, newY));
+
+    const newShapes = shapes.map((s) =>
+      s.id === shapeId ? { ...s, x: newX, y: newY } : s
+    );
+
+    updateShapes(newShapes, true);
+  };
+
+  const handleResize = ({ target, width, height }: any) => {
+    const shapeId = target.dataset.id;
+    const shape = shapes.find((s) => s.id === shapeId);
+    if (!shape) return;
+
+    let newWidth = Math.min(width, canvasBounds.width - shape.x);
+    let newHeight = Math.min(height, canvasBounds.height - shape.y);
+
+    target.style.width = `${newWidth}px`;
+    target.style.height = `${newHeight}px`;
+
+    const newShapes = shapes.map((s) =>
+      s.id === shapeId ? { ...s, width: newWidth, height: newHeight } : s
+    );
+
+    updateShapes(newShapes, true);
+  };
+
   return (
     <div
-      className="relative w-full h-[calc(100%-120px)] border border-gray-400 rounded-lg overflow-auto p-2"
+      className="relative w-full h-full border border-gray-400 rounded-lg overflow-auto p-2"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         onDrop(e, e.dataTransfer.getData("type") as ShapeType);
       }}
     >
-      <div className="absolute" ref={containerRef}>
+      <div className="absolute " ref={containerRef}>
         {shapes.map((shape) => (
           <ShapeComponent key={shape.id} shape={shape} />
         ))}
@@ -138,22 +177,24 @@ export const Canvas = ({
           });
           updateShapes(newShapes, true);
         }}
-        onDrag={({ target, delta }) => {
-          const newShapes = shapes.map((s) =>
-            s.id === target.dataset.id
-              ? { ...s, x: s.x + delta[0], y: s.y + delta[1] }
-              : s
-          );
-          updateShapes(newShapes, true);
-        }}
-        onResize={({ target, width, height, delta }) => {
-          delta[0] && (target.style.width = `${width}px`);
-          delta[1] && (target.style.height = `${height}px`);
-          const newShapes = shapes.map((s) =>
-            s.id === target.dataset.id ? { ...s, width, height } : s
-          );
-          updateShapes(newShapes, true);
-        }}
+        // onDrag={({ target, delta }) => {
+        //   const newShapes = shapes.map((s) =>
+        //     s.id === target.dataset.id
+        //       ? { ...s, x: s.x + delta[0], y: s.y + delta[1] }
+        //       : s
+        //   );
+        //   updateShapes(newShapes, true);
+        // }}
+        // onResize={({ target, width, height, delta }) => {
+        //   delta[0] && (target.style.width = `${width}px`);
+        //   delta[1] && (target.style.height = `${height}px`);
+        //   const newShapes = shapes.map((s) =>
+        //     s.id === target.dataset.id ? { ...s, width, height } : s
+        //   );
+        //   updateShapes(newShapes, true);
+        // }}
+        onDrag={handleDrag}
+        onResize={handleResize}
         onRotate={({ target, rotation }) => {
           const newShapes = shapes.map((s) =>
             s.id === target.dataset.id ? { ...s, rotation } : s

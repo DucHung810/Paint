@@ -20,7 +20,7 @@ export default function DrawToolTest() {
   const [textInput, setTextInput] = useState("");
   const [isDraggingGroup, setIsDraggingGroup] = useState(false);
   const [isRotatingGroup, setIsRotatingGroup] = useState(false);
-
+  const [isOpen, setIsOpen] = useState(false);
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>, type: ShapeType) => {
       e.preventDefault();
@@ -151,11 +151,32 @@ export default function DrawToolTest() {
   return (
     <div className="relative w-screen h-screen flex flex-row p-4 gap-4">
       <div className="flex flex-col gap-4">
-        <Toolbox
-          onUpdateColor={updateColor}
-          onUpdateText={updateText}
-          textInput={textInput}
-        />
+        <div className="flex flex-row gap-1 border-y border-y-[#c4c4c4]">
+          <img
+            src="./icon/triangle.svg"
+            alt=""
+            height={20}
+            width={20}
+            className={` ${isOpen ? "rotate-90" : "rotate-0"}`}
+          />
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className="py-1 w-full text-[#3F3F3F] jrounded-md cursor-pointer"
+          >
+            General
+          </div>
+        </div>
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            isOpen ? "block" : "hidden"
+          }`}
+        >
+          <Toolbox
+            onUpdateColor={updateColor}
+            onUpdateText={updateText}
+            textInput={textInput}
+          />
+        </div>
         <Controls
           horizontalCount={horizontalCount}
           verticalCount={verticalCount}
@@ -171,20 +192,21 @@ export default function DrawToolTest() {
           canRedo={canRedo}
         />
       </div>
-
-      <Canvas
-        shapes={shapes}
-        selectedIds={selectedIds}
-        isDraggingGroup={isDraggingGroup}
-        isRotatingGroup={isRotatingGroup}
-        updateShapes={updateShapes}
-        onSelect={handleSelect}
-        onDrop={handleDrop}
-        onDragGroupStart={handleDragGroupStart}
-        onDragGroupEnd={handleDragGroupEnd}
-        onRotateGroupStart={handleRotateGroupStart}
-        onRotateGroupEnd={handleRotateGroupEnd}
-      />
+      <div className="w-full h-[calc(100%-120px)] bg-white rounded-xl">
+        <Canvas
+          shapes={shapes}
+          selectedIds={selectedIds}
+          isDraggingGroup={isDraggingGroup}
+          isRotatingGroup={isRotatingGroup}
+          updateShapes={updateShapes}
+          onSelect={handleSelect}
+          onDrop={handleDrop}
+          onDragGroupStart={handleDragGroupStart}
+          onDragGroupEnd={handleDragGroupEnd}
+          onRotateGroupStart={handleRotateGroupStart}
+          onRotateGroupEnd={handleRotateGroupEnd}
+        />
+      </div>
     </div>
   );
 }
